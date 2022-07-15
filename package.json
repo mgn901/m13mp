@@ -18,5 +18,22 @@
   "bugs": {
     "url": "https://github.com/mgn901/m13mp/issues"
   },
-  "homepage": "https://github.com/mgn901/m13mp#readme"
+  "homepage": "https://github.com/mgn901/m13mp#readme",
+  "dependencies": {
+    "@mgn901/m13tk2": "github:mgn901/m13tk2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-transition-group": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.4",
+    "@types/react": "^18.0.15",
+    "@types/react-dom": "^18.0.6",
+    "@types/react-transition-group": "^4.4.5",
+    "esbuild": "^0.14.49",
+    "esbuild-register": "^3.3.3",
+    "esbuild-sass-plugin": "^2.2.6",
+    "sass": "^1.53.0",
+    "typescript": "^4.7.4"
+  }
 }
