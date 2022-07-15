@@ -1,5 +1,5 @@
 {
-  "name": "@mgn901/mgn901-react-template",
+  "name": "@mgn901/m13mp",
   "version": "0.0.0",
   "description": "",
   "main": "./src/index.ts",
@@ -11,12 +11,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mgn901/mgn901-react-template.git"
+    "url": "git+https://github.com/mgn901/m13mp.git"
   },
   "author": "mgn901 <mgn901+dev@gmail.com> (https://mgn901.pages.dev/)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mgn901/mgn901-react-template/issues"
+    "url": "https://github.com/mgn901/m13mp/issues"
   },
-  "homepage": "https://github.com/mgn901/mgn901-react-template#readme"
+  "homepage": "https://github.com/mgn901/m13mp#readme"
 }

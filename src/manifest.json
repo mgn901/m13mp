@@ -4,10 +4,10 @@
 	"display": "standalone",
 	"orientation": "any",
 	"scope": "./",
-	"start_url": "https://mgn901.pages.dev/mgn901-react-template/",
-	"name": "mgn901-react-template",
-	"description": "mgn901-react-template",
-	"short_name": "mgn901-react-template",
+	"start_url": "https://mgn901.pages.dev/m13mp/",
+	"name": "m13mp",
+	"description": "m13mp",
+	"short_name": "m13mp",
 	"icons": [
 		{
 			"src": "./icons/icon-192x192.png",
