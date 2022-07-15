@@ -1,0 +1,22 @@
+{
+  "name": "@mgn901/mgn901-react-template",
+  "version": "0.0.0",
+  "description": "",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "set NODE_ENV=production& node --require esbuild-register ./scripts/build.ts",
+    "start": "set NODE_ENV=development& node --require esbuild-register ./scripts/build.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "type-check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgn901/mgn901-react-template.git"
+  },
+  "author": "mgn901 <mgn901+dev@gmail.com> (https://mgn901.pages.dev/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mgn901/mgn901-react-template/issues"
+  },
+  "homepage": "https://github.com/mgn901/mgn901-react-template#readme"
+}
