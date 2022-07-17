@@ -15,6 +15,7 @@ const isEditorCommandID = (v: unknown): v is EditorCommandID => {
 
 interface EditorCommandCell {
 	lineID: LineID;
+	newLineID?: LineID;
 	type: 'insertLine' | 'editLine' | 'deleteLine';
 	start: number;
 	end: number;

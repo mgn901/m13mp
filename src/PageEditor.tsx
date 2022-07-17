@@ -1,7 +1,15 @@
 import * as React from 'react';
 import { EditorCommandCell, EditorCommand, EditorInitCommand } from './EditorCommand';
-import { isLine, isLineID, Line, LineID } from './Line';
+import { generateLineID, isLine, isLineID, Line, LineID } from './Line';
 import { Page } from './Page';
+import { UnixTime } from './utils';
+
+interface RangeLike {
+	startContainer: Node;
+	startOffset: number;
+	endContainer: Node;
+	endOffset: number;
+}
 
 type PropsPageEditor = {
 	page: Page;
@@ -16,7 +24,7 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 	// utils //
 	///////////
 
-	const getTargetLineElement = (range: Range): HTMLElement[] => {
+	const getTargetLineElement = (range: RangeLike): HTMLElement[] => {
 		let lineElement0, lineElement1;
 		if (range.startContainer instanceof HTMLDivElement) {
 			lineElement0 = range.startContainer;
@@ -31,25 +39,36 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 		return [lineElement0, lineElement1];
 	}
 
-	const getTargetLineID = (range: Range): LineID[] => {
+	const getTargetLineID = (range: RangeLike): LineID[] => {
 		const lineElement = getTargetLineElement(range);
 		let lineID0 = lineElement[0].dataset.id;
 		let lineID1 = lineElement[1].dataset.id;
 		if (!isLineID(lineID0) || !isLineID(lineID1)) {
-			throw Error('PageEditorInvalidLineIDError');
+			throw Error(`PageEditorInvalidLineIDError: ${lineID0} or ${lineID1} is invalid.`);
 		} else {
 			return [lineID0, lineID1];
 		}
 	}
 
-	const getLineByID = (id: LineID): Line => {
+	const getLineByID = (id: LineID, lines: Line[] = linesState): Line => {
 		const line = lines.find((v) => {
 			return v.id === id;
 		});
 		if (!isLine(line)) {
-			throw Error('PageEditorLineNotFoundError');
+			throw Error(`PageEditorLineNotFoundError: line for ${id} is not found.`);
 		} else {
 			return line;
+		}
+	}
+
+	const getLinePosById = (id: LineID, lines: Line[] = linesState): number => {
+		const pos = lines.findIndex((v) => {
+			return v.id === id;
+		});
+		if (pos === -1) {
+			throw Error(`PageEditorLineNotFoundError: line for ${id} is not found.`);
+		} else {
+			return pos;
 		}
 	}
 
@@ -59,10 +78,13 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 
 	const initCommand = new EditorInitCommand();
 	const [commands, setCommands] = React.useState<(EditorCommand | EditorInitCommand)[]>([initCommand]);
-	const [prevRange, setPrevRangeState] = React.useState<Range>();
+	const [prevRange, setPrevRangeState] = React.useState<RangeLike>();
+	const [linesState, setLinesState] = React.useState(lines);
+	const [isComposing, setIsComposing] = React.useState(false);
 
 	const pushCommand = (command: EditorCommand) => {
 		setCommands([...commands, command]);
+		handleCommand(command);
 		return;
 	}
 
@@ -85,25 +107,65 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 		) {
 			return;
 		}
-		setPrevRangeState(range);
+		const { startContainer, startOffset, endContainer, endOffset } = r;
+		const rangeForSet = { startContainer, startOffset, endContainer, endOffset };
+		setPrevRangeState(rangeForSet);
 		return;
+	}
+
+	/////////////////////
+	// handle command ///
+	/////////////////////
+
+	const handleCommand = (command: EditorCommand) => {
+		const newLines = [...lines];
+		for (let i = 0; i < command.commands.length; i += 1) {
+			const cell = command.commands[i];
+			const pos = getLinePosById(cell.lineID, newLines);
+			if (cell.type === 'insertLine') {
+				newLines.splice(pos, 0, {
+					id: cell.newLineID!,
+					text: '',
+					updated: Date.now() / 1000 as UnixTime,
+				});
+			} else if (cell.type === 'editLine') {
+				const newLine = { ...getLineByID(cell.lineID, linesState) };
+				newLine.text = newLine.text.slice(0, cell.start) + cell.newText + newLine.text.slice(cell.end);
+				console.log(newLine.text);
+				newLines[pos] = newLine;
+			}
+		}
+		setLinesState(newLines);
 	}
 
 	//////////////////////
 	// generate command //
 	//////////////////////
 
-	const handleInsert = (e: InputEvent, newSelection: Selection) => {
+	const handleInsert = (e: InputEvent | CompositionEvent, newSelection: Selection) => {
 
-		let commandCell: EditorCommandCell;
-		if (e.inputType === 'insertLineBreak') {
-			commandCell = {
+		let commands: EditorCommandCell[];
+
+		if (e instanceof InputEvent && (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph')) {
+			const lineID = getTargetLineID(prevRange!)[0];
+			const newLineID = generateLineID();
+			const oldLine = getLineByID(lineID);
+			const insertLineCommandCell: EditorCommandCell = {
 				type: 'insertLine',
-				start: 0,
-				end: 0,
-				lineID: Date.now().toString(10) as LineID,
+				start: prevRange?.startOffset!,
+				end: prevRange?.endOffset!,
+				lineID,
+				newLineID,
 				newText: '',
 			};
+			const cellForNewLine: EditorCommandCell = {
+				type: 'editLine',
+				start: 0,
+				end: 0,
+				lineID: newLineID,
+				newText: oldLine.text.substring(prevRange?.startOffset!),
+			}
+			commands = [insertLineCommandCell, cellForNewLine];
 		} else {
 			const newRange = newSelection.getRangeAt(0);
 			const newLineElement = getTargetLineElement(newRange)[0]!;
@@ -112,21 +174,28 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 			// 貼り付ける瞬間（実際に張り付けられるより前）にrangeがぶった切れる
 			const pastePos = (prevRange?.startContainer?.previousSibling?.previousSibling?.textContent?.length! || 0);
 			const start = prevRange!.startOffset! + pastePos;
-			commandCell = {
+			const commandCell: EditorCommandCell = {
 				lineID: getTargetLineID(prevRange!)[0],
 				type: 'editLine',
 				start,
 				end: prevRange!.endOffset! + pastePos,
 				newText: newLineText.substring(start, newRange.startOffset + pastePos),
 			};
+			// FirefoxではinputとcompositionEndが同時に発行されるが、片方が空になる。
+			if (commandCell.start === commandCell.end && commandCell.newText === '') {
+				return;
+			}
+			commands = [commandCell];
 		}
+
 		const command = new EditorCommand({
 			refID: peakCommand().id,
-			commands: [commandCell],
-		})
+			commands,
+		});
 		pushCommand(command);
 		console.log(command);
 		return;
+
 	}
 
 	const handleDelete = (e: InputEvent) => {
@@ -142,11 +211,10 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 		if (!(ne instanceof InputEvent)) {
 			return;
 		}
-		if (ne.isComposing) {
+		if (isComposing === true) {
 			return;
 		}
 		if (ne.inputType.includes('insert')) {
-			console.log(ne);
 			const selection = window.getSelection()!;
 			handleInsert(ne, selection);
 			setPrevRange(selection.getRangeAt(0));
@@ -159,13 +227,27 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 	// handler for onSelect //
 	//////////////////////////
 
+	const handleCompositionStart: React.CompositionEventHandler = (e) => {
+		setIsComposing(true);
+	}
+
+	const handleCompositionEnd: React.CompositionEventHandler = (e) => {
+		if (isComposing === true) {
+			handleInsert(e.nativeEvent, window.getSelection()!);
+		}
+		setIsComposing(false);
+	}
+
 	const handleSelect: React.ReactEventHandler<HTMLDivElement> = (e) => {
+		if (isComposing === true) {
+			return;
+		}
 		const selection = window.getSelection()!;
 		setPrevRange(selection.getRangeAt(0));
 		return;
 	}
 
-	const renderedLines = lines.map((line) => {
+	const renderedLines = linesState.map((line) => {
 		return <div
 			key={line.id}
 			data-id={line.id}
@@ -178,7 +260,9 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 		className='tk-b tk-p-2qr'
 		contentEditable={true}
 		onInput={handleInput}
-		onSelect={handleSelect}>
+		onSelect={handleSelect}
+		onCompositionStart={handleCompositionStart}
+		onCompositionEnd={handleCompositionEnd}>
 		{renderedLines}
 	</div>;
 
