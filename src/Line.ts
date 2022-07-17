@@ -8,6 +8,9 @@ const isLineID = (v: unknown): v is LineID => {
 		return false;
 	}
 }
+const generateLineID = (): LineID => {
+	return Date.now().toString(10) as LineID;
+}
 
 interface Line {
 	id: LineID;
@@ -31,6 +34,7 @@ const isLine = (v: unknown): v is Line => {
 export {
 	LineID,
 	isLineID,
+	generateLineID,
 	Line,
 	isLine,
 };
