@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EditorCommand, EditorInitCommand } from './EditorCommand';
+import { EditorCommandCell, EditorCommand, EditorInitCommand } from './EditorCommand';
 import { isLine, isLineID, Line, LineID } from './Line';
 import { Page } from './Page';
 
@@ -95,16 +95,15 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 
 	const handleInsert = (e: InputEvent, newSelection: Selection) => {
 
-		let command: EditorCommand;
+		let commandCell: EditorCommandCell;
 		if (e.inputType === 'insertLineBreak') {
-			command = new EditorCommand({
+			commandCell = {
 				type: 'insertLine',
 				start: 0,
 				end: 0,
 				lineID: Date.now().toString(10) as LineID,
-				refID: peakCommand().id,
 				newText: '',
-			});
+			};
 		} else {
 			const newRange = newSelection.getRangeAt(0);
 			const newLineElement = getTargetLineElement(newRange)[0]!;
@@ -113,15 +112,18 @@ const PageEditor: React.FC<PropsPageEditor> = (props) => {
 			// 貼り付ける瞬間（実際に張り付けられるより前）にrangeがぶった切れる
 			const pastePos = (prevRange?.startContainer?.previousSibling?.previousSibling?.textContent?.length! || 0);
 			const start = prevRange!.startOffset! + pastePos;
-			command = new EditorCommand({
-				refID: peakCommand().id,
+			commandCell = {
 				lineID: getTargetLineID(prevRange!)[0],
 				type: 'editLine',
 				start,
 				end: prevRange!.endOffset! + pastePos,
 				newText: newLineText.substring(start, newRange.startOffset + pastePos),
-			});
+			};
 		}
+		const command = new EditorCommand({
+			refID: peakCommand().id,
+			commands: [commandCell],
+		})
 		pushCommand(command);
 		console.log(command);
 		return;

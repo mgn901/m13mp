@@ -13,9 +13,7 @@ const isEditorCommandID = (v: unknown): v is EditorCommandID => {
 	}
 }
 
-interface EditorCommand {
-	id: EditorCommandID;
-	refID: EditorCommandID;
+interface EditorCommandCell {
 	lineID: LineID;
 	type: 'insertLine' | 'editLine' | 'deleteLine';
 	start: number;
@@ -23,17 +21,17 @@ interface EditorCommand {
 	newText: string;
 }
 
+interface EditorCommand {
+	id: EditorCommandID;
+	refID: EditorCommandID;
+	commands: EditorCommandCell[];
+}
+
 class EditorCommand implements EditorCommand {
 	constructor(src: Omit<EditorCommand, 'id'>) {
-		const id = generateEditorCommandID();
-		const { refID, lineID, type, start, end, newText } = src;
-		this.id = id;
-		this.refID = refID;
-		this.lineID = lineID;
-		this.type = type;
-		this.start = start;
-		this.end = end;
-		this.newText = newText;
+		this.id = generateEditorCommandID();
+		this.refID = src.refID;
+		this.commands = src.commands;
 	}
 }
 
@@ -49,4 +47,4 @@ class EditorInitCommand implements EditorInitCommand {
 	}
 }
 
-export { EditorCommand, EditorInitCommand };
+export { EditorCommandCell, EditorInitCommand, EditorCommand };
